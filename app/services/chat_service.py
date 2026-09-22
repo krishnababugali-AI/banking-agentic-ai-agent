@@ -1,41 +1,25 @@
-import asyncio
 import logging
 
-from app.clients.transaction_client import get_recent_transaction
+from app.auth.security_context import SecurityContext
 from app.models.chat import ChatRequest, ChatResponse
+from app.services.agent_service import run_banking_agent
 
 
 logger = logging.getLogger(__name__)
 
-TRANSACTION_TIMEOUT_SECONDS = 2.0
 
+async def process_chat(
+    request: ChatRequest,
+    security_context: SecurityContext,
+) -> ChatResponse:
 
-async def process_chat(request: ChatRequest) -> ChatResponse:
-    try:
-        transaction = await asyncio.wait_for(
-            get_recent_transaction(request.customer_id),
-            timeout=TRANSACTION_TIMEOUT_SECONDS,
-        )
-
-    except TimeoutError:
-        logger.warning(
-            "Transaction service timed out"
-        )
-
-        return ChatResponse(
-            customer_id=request.customer_id,
-            answer="Transaction information is temporarily unavailable.",
-            status="error",
-        )
-
-    answer = (
-        f"Your recent transaction was "
-        f"${transaction['amount']:.2f} "
-        f"at {transaction['merchant']}."
+    answer = await run_banking_agent(
+        user_id=security_context.user_id,
+        message=request.message,
     )
 
     return ChatResponse(
-        customer_id=request.customer_id,
+        customer_id=security_context.customer_id,
         answer=answer,
         status="success",
     )

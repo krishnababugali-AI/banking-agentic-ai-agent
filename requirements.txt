@@ -6,3 +6,4 @@ httpx
 python-dotenv
 google-adk
 mcp
+firebase-admin
